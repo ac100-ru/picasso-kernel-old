@@ -54,4 +54,4 @@ obj-$(CONFIG_CHARGER_SMB347)	+= smb347-charger.o
 obj-$(CONFIG_BATTERY_ANDROID)	+= android_battery.o
 obj-$(CONFIG_EC_BATTERY)	+= ec-battery.o
 obj-$(CONFIG_POWER_RESET)	+= reset/
-
+obj-$(CONFIG_POWER_SEQ)		+= power_seq/
