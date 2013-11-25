@@ -21,6 +21,7 @@
 #include <linux/rfkill-gpio.h>
 #include "board.h"
 #include "board-paz00.h"
+#include "clock.h"
 
 static struct rfkill_gpio_platform_data wifi_rfkill_platform_data = {
 	.name		= "wifi_rfkill",
@@ -37,7 +38,20 @@ static struct platform_device wifi_rfkill_device = {
 	},
 };
 
+static __initdata struct tegra_clk_init_table paz00_clk_init_table[] = {
+        /* name                parent                rate                enabled */
+	{ "mpe",		"pll_c",	0,		false },
+	{ "epp",		"pll_c",	0,		false },
+	{ "vi_sensor",		"pll_c",	0,		false },
+	{ "vi",			"pll_c",	0,		false },
+	{ "2d",			"pll_c",	0,		false },
+	{ "3d",			"pll_c",	0,		false },
+        { NULL,                NULL,                0,                0     },
+};
+
 void __init tegra_paz00_wifikill_init(void)
 {
+	tegra_clk_init_from_table(paz00_clk_init_table);
+
 	platform_device_register(&wifi_rfkill_device);
 }
