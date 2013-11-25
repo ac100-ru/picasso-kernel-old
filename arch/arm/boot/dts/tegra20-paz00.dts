@@ -1,5 +1,14 @@
 /dts-v1/;
 
+/*
+ * Carveouts for multimedia and ram console
+ * 256MB - multimedia
+ * 9MB - fb1
+ * 16MB - fb2
+ * 1MB - console
+ */
+/memreserve/ 0x2E600000 0x11A00000;
+
 /include/ "tegra20.dtsi"
 
 / {
@@ -9,18 +18,38 @@
 	memory {
 		reg = <0x00000000 0x20000000>;
 	};
+      
+        nvmap {
+		compatible = "nvidia,tegra-nvmap";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
 
-	host1x {
-		dc@54200000 {
-			rgb {
-				status = "okay";
-				nvidia,ddc-i2c-bus = <&lvds_ddc>;
+		carveouts {
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
 
-				display {
-					nvidia,backlight = <&backlight>;
-				};
+			iram {
+				reg = <0x40000400 0x3FC00>;
+				reg-names = "iram";
+				buddy-size = <0>;
+				usage-mask = <0x20000000>;
+			};
+
+			generic {
+				reg = <0x2E600000 0x10000000>;
+				reg-names = "generic-0";
+				buddy-size = <0x8000>;
+				usage-mask = <0x1>;
 			};
 		};
+	};
+
+	host1x {
+                compatible = "nvidia,tegra20-host1x", "nvhost-bus";
+		clock-names = "host1x";
+		ranges;
 
 		hdmi {
 			status = "okay";
@@ -30,6 +59,90 @@
 
 			nvidia,ddc-i2c-bus = <&hdmi_ddc>;
 			nvidia,hpd-gpio = <&gpio 111 0>; /* PN7 */
+		};
+
+                dc@54200000 {
+			reg = <0x54200000 0x00040000>,
+			      <0x3E600000 0x00900000>;
+			reg-names = "regs", "fbmem";
+			interrupt-names = "irq";
+
+			lvds-vdd-supply = <&lvds_bl_reg>;
+			pnl-vdd-supply = <&vdd_panel_reg>;
+			bl-vdd-supply = <&vdd_bl_reg>;
+
+			rgb {
+				status = "okay";
+				nvidia,ddc-i2c-bus = <&lvds_ddc>;
+
+				display {
+					nvidia,backlight = <&backlight>;
+					fb-win = <0>;
+					fb-xres = <1024>;
+					fb-yres = <600>;
+					fb-bpp = <32>;
+
+					lvds-to-bl = <330>;
+
+					dc-index = <0>;
+
+					flags = <1>; /* TEGRA_DC_FLAG_ENABLED */
+
+					type = <0>; /* TEGRA_DC_OUT_RGB */
+					order = <0>; /* TEGRA_DC_ORDER_RED_BLUE */
+					align = <0>; /* TEGRA_DC_ALIGN_MSB */
+					depth = <18>;
+					dither = <3>; /* TEGRA_DC_ERRDIFF_DITHER */
+
+					default-emc-rate = <600000000>;
+					min-emc-rate = <300000000>;
+
+					display-timings {
+						native-mode = <&timing0>;
+						timing0: 1024x600 {
+							clock-frequency = <54030000>;
+							hactive = <1024>;
+							vactive = <600>;
+							hfront-porch = <24>;
+							hback-porch = <160>;
+							hsync-len = <58>;
+							vsync-len = <4>;
+							vfront-porch = <3>;
+							vback-porch = <61>;
+						};
+					};
+				};
+			};
+		};
+
+		dc@54240000 {
+			reg = <0x54240000 0x00040000>,
+			      <0x54280000 0x00040000>,
+			      <0x3EF00000 0x01000000>;
+			reg-names = "regs", "hdmi_regs", "fbmem";
+			interrupt-names = "irq";
+
+			hdmi-vdd-supply = <&hdmi_vdd_reg>;
+			hdmi-pll-supply = <&hdmi_pll_reg>;
+
+			rgb {
+				status = "okay";
+
+				display {
+					fb-win = <0>;
+					fb-xres = <1280>;
+					fb-yres = <800>;
+					fb-bpp = <32>;
+
+					dc-index = <1>;
+
+					type = <1>; /* TEGRA_DC_OUT_HDMI */
+					order = <0>; /* TEGRA_DC_ORDER_RED_BLUE */
+					align = <0>; /* TEGRA_DC_ALIGN_MSB */
+					dc-flags = <0>; /* TEGRA_DC_OUT_HOTPLUG_HIGH */
+					max-clock = <148500>;
+				};
+			};
 		};
 	};
 
@@ -277,7 +390,7 @@
 
 	hdmi_ddc: i2c@7000c400 {
 		status = "okay";
-		clock-frequency = <100000>;
+		clock-frequency = <10000>;
 	};
 
 	nvec {
@@ -456,9 +569,15 @@
 		nvidia,invert-interrupt;
 	};
 
-	usb@c5000000 {
-		status = "okay";
+	usb-otg@c5000000 {
+		compatible = "nvidia,tegra20-otg";
+		reg = <0xc5000000 0x4000>;
 	};
+	
+	usb-udc@c5000000 {
+                compatible = "nvidia,tegra20-udc";
+                reg = <0xc5000000 0x4000>;
+        };
 
 	usb@c5004000 {
 		status = "okay";
@@ -468,6 +587,11 @@
 	usb@c5008000 {
 		status = "okay";
 	};
+
+	ram-console {
+                compatible = "android,ram-console";
+                reg = <0x3FF00000 0x00100000>;
+        };
 
 	sdhci@c8000000 {
 		status = "okay";
@@ -586,7 +710,30 @@
 			regulator-max-microvolt = <3300000>;
 			gpio = <&gpio 4 0>; /* gpio PA4 */
 			enable-active-high;
+			regulator-boot-on;
 		};
+		
+		vdd_bl_reg: regulator@2 {
+			compatible = "regulator-fixed";
+			reg = <2>;
+			regulator-name = "vdd_bl";
+			regulator-min-microvolt = <2800000>;
+			regulator-max-microvolt = <2800000>;
+			gpio = <&gpio 164 0>; /* gpio PU4 */
+			enable-active-high;
+			regulator-boot-on;
+		};
+
+		lvds_bl_reg: regulator@3 {
+			compatible = "regulator-fixed";
+			reg = <3>;
+			regulator-name = "vdd_lvds";
+			regulator-min-microvolt = <2800000>;
+			regulator-max-microvolt = <2800000>;
+			gpio = <&gpio 102 0>; /* gpio PM6 */
+			enable-active-high;
+			regulator-boot-on;
+		};	
 	};
 
 	sound {
