@@ -67,6 +67,10 @@
 			reg-names = "regs", "fbmem";
 			interrupt-names = "irq";
 
+			lvds-vdd-supply = <&lvds_bl_reg>;
+			pnl-vdd-supply = <&vdd_panel_reg>;
+			bl-vdd-supply = <&vdd_bl_reg>;
+
 			rgb {
 				status = "okay";
 				nvidia,ddc-i2c-bus = <&lvds_ddc>;
@@ -77,6 +81,8 @@
 					fb-xres = <1024>;
 					fb-yres = <600>;
 					fb-bpp = <32>;
+
+					lvds-to-bl = <330>;
 
 					dc-index = <0>;
 
@@ -115,6 +121,9 @@
 			      <0x1EF00000 0x01000000>;
 			reg-names = "regs", "hdmi_regs", "fbmem";
 			interrupt-names = "irq";
+
+			hdmi-vdd-supply = <&hdmi_vdd_reg>;
+			hdmi-pll-supply = <&hdmi_pll_reg>;
 
 			rgb {
 				status = "okay";
@@ -730,6 +739,27 @@
 			regulator-boot-on;
 		};
 		
+		vdd_bl_reg: regulator@2 {
+			compatible = "regulator-fixed";
+			reg = <2>;
+			regulator-name = "vdd_bl";
+			regulator-min-microvolt = <2800000>;
+			regulator-max-microvolt = <2800000>;
+			gpio = <&gpio 164 0>; /* gpio PU4 */
+			enable-active-high;
+			regulator-boot-on;
+		};
+
+		lvds_bl_reg: regulator@3 {
+			compatible = "regulator-fixed";
+			reg = <3>;
+			regulator-name = "vdd_lvds";
+			regulator-min-microvolt = <2800000>;
+			regulator-max-microvolt = <2800000>;
+			gpio = <&gpio 102 0>; /* gpio PM6 */
+			enable-active-high;
+			regulator-boot-on;
+		};	
 	};
 
 	sound {
